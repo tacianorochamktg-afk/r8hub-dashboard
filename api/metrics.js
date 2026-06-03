@@ -45,8 +45,20 @@ export default async function handler(req, res) {
       // Calcular MRR por assinatura
       if (sub.items.data[0]?.price) {
         const price = sub.items.data[0].price;
-        if (price.recurring && price.recurring.interval === 'month') {
-          mrr += (price.unit_amount || 0) / 100;
+        if (price.recurring) {
+          const amount = (price.unit_amount || 0) / 100;
+          const interval = price.recurring.interval;
+          const count = price.recurring.interval_count || 1;
+          // Converter qualquer intervalo para valor mensal equivalente
+          if (interval === 'month') {
+            mrr += amount / count;
+          } else if (interval === 'year') {
+            mrr += (amount / count) / 12;
+          } else if (interval === 'week') {
+            mrr += (amount / count) * (52 / 12);
+          } else if (interval === 'day') {
+            mrr += (amount / count) * (365 / 12);
+          }
         }
       }
     });
