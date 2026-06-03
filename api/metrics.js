@@ -24,10 +24,12 @@ export default async function handler(req, res) {
     }
 
     // Buscar todas as assinaturas
-    const subscriptions = await stripe.subscriptions.list({
-      limit: 100,
-      status: 'active'
-    });
+    // Buscar active + trialing (ambos contam como ativos no Stripe)
+    const [activeSubs, trialingSubs] = await Promise.all([
+      stripe.subscriptions.list({ limit: 100, status: 'active' }),
+      stripe.subscriptions.list({ limit: 100, status: 'trialing' })
+    ]);
+    const subscriptions = { data: [...activeSubs.data, ...trialingSubs.data] };
 
     // Buscar clientes
     const customers = await stripe.customers.list({
