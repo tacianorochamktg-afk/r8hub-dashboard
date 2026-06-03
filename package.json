@@ -1,0 +1,19 @@
+{
+  "name": "r8hub-dashboard",
+  "version": "1.0.0",
+  "description": "R8 Hub Growth Dashboard - Tempo Real com Stripe",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'build complete'"
+  },
+  "dependencies": {
+    "stripe": "^14.0.0"
+  },
+  "devDependencies": {
+    "vercel": "latest"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
