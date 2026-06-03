@@ -360,7 +360,13 @@
             </div>
         </div>
 
-        <!-- Insights Section -->
+        <!-- Trial vs Pagantes Section -->
+        <div class="section-title">🔄 Conversão: Trial → Pagante</div>
+        <div class="metrics-grid" id="trialConversionGrid">
+            <!-- Gerado dinamicamente -->
+        </div>
+
+                <!-- Insights Section -->
         <div class="section-title">💡 O Que Seus Dados Dizem</div>
 
         <div class="metrics-grid" id="insightsGrid">
@@ -402,6 +408,7 @@
                 displayMetrics(data.metrics, data.dataPoints);
                 displayInsights(data.metrics, data.dataPoints);
                 displayActions(data.metrics, data.dataPoints);
+            displayTrialConversion(data.metrics);
                 
                 document.getElementById('lastUpdate').textContent = 
                     `✅ Atualizado às ${new Date().toLocaleTimeString('pt-BR')}`;
@@ -428,10 +435,16 @@
                     insight: 'Use para projetar crescimento e planejar investimentos'
                 },
                 {
-                    label: 'Clientes Ativos',
-                    value: metrics.activeCustomers,
-                    description: 'Assinaturas ativas no momento',
-                    insight: 'Cada cliente novo = crescimento. Foco em retenção!'
+                    label: '✅ Clientes Pagantes',
+                    value: metrics.activeCount ?? metrics.activeCustomers,
+                    description: 'Assinaturas ativas e pagas',
+                    insight: 'Receita garantida. Cada pagante = MRR real!'
+                },
+                {
+                    label: '⏳ Em Trial / Teste',
+                    value: metrics.trialingCount ?? 0,
+                    description: 'Testando agora — ainda não pagam',
+                    insight: metrics.trialingCount > 0 ? `Converter trials = crescimento sem custo de aquisição!` : 'Nenhum trial ativo no momento.'
                 },
                 {
                     label: 'Taxa de Cancelamento',
@@ -595,7 +608,39 @@
             return actions;
         }
 
-        function displayError() {
+        function displayTrialConversion(metrics) {
+        const grid = document.getElementById('trialConversionGrid');
+        if (!grid) return;
+
+        const paying = metrics.activeCount ?? metrics.activeCustomers;
+        const trialing = metrics.trialingCount ?? 0;
+        const total = paying + trialing;
+        const convRate = total > 0 ? Math.round((paying / total) * 100) : 0;
+        const mrrPerTrial = trialing > 0 ? (parseFloat((metrics.mrr || '0').replace('R$ ', '').replace(',', '.')) / (paying || 1)).toFixed(2).replace('.', ',') : '0,00';
+
+        grid.innerHTML = `
+            <div class="card">
+                <div class="card-label">✅ CLIENTES PAGANTES</div>
+                <div class="card-value">${paying}</div>
+                <div class="card-description">Assinaturas ativas e pagas</div>
+                <div class="insight-box">💰 MRR real = ${metrics.mrr}</div>
+            </div>
+            <div class="card">
+                <div class="card-label">⏳ EM TRIAL / TESTE</div>
+                <div class="card-value" style="color: #f59e0b;">${trialing}</div>
+                <div class="card-description">Testando agora — ainda não pagam</div>
+                <div class="insight-box">${trialing > 0 ? '🎯 Foco: converter cada trial em pagante!' : '✨ Nenhum trial ativo no momento.'}</div>
+            </div>
+            <div class="card">
+                <div class="card-label">📊 TAXA DE CONVERSÃO</div>
+                <div class="card-value" style="color: ${convRate >= 70 ? '#22c55e' : convRate >= 40 ? '#f59e0b' : '#ef4444'};">${convRate}%</div>
+                <div class="card-description">Pagantes vs total (pagantes + trials)</div>
+                <div class="insight-box">${convRate >= 70 ? '🏆 Excelente conversão!' : convRate >= 40 ? '⚡ Há espaço para melhorar o onboarding.' : '🚨 Conversão baixa — revise o onboarding dos trials.'}</div>
+            </div>
+        `;
+    }
+
+    function displayError() {
             const grid = document.getElementById('metricsGrid');
             grid.innerHTML = `
                 <div class="card" style="grid-column: 1 / -1;">
