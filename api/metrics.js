@@ -37,7 +37,9 @@ export default async function handler(req, res) {
     });
 
     // Calcular métricas
-    const activeCustomers = subscriptions.data.length;
+    const activeCount = activeSubs.data.length;     // pagantes
+    const trialingCount = trialingSubs.data.length; // em trial
+    const activeCustomers = activeCount + trialingCount;
     
     let mrr = 0;
     let totalLTV = 0;
@@ -124,6 +126,8 @@ export default async function handler(req, res) {
       metrics: {
         mrr: `R$ ${mrr.toFixed(2).replace('.', ',')}`,
         activeCustomers: activeCustomers,
+        activeCount: activeCount,
+        trialingCount: trialingCount,
         churnRate: `${churnRate.toFixed(2).replace('.', ',')}`,
         avgTicket: `R$ ${avgTicket.toFixed(2).replace('.', ',')}`,
         ltv: `R$ ${Math.max(ltv, 0).toFixed(2).replace('.', ',')}`,
@@ -133,6 +137,8 @@ export default async function handler(req, res) {
       lastUpdated: new Date().toISOString(),
       dataPoints: {
         activeSubscriptions: activeCustomers,
+        activeCount: activeCount,
+        trialingCount: trialingCount,
         canceledLastMonth: canceledLastMonth,
         totalCharges: charges.data.length
       }
