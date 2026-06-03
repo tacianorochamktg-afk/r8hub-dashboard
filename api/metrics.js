@@ -18,146 +18,152 @@ export default async function handler(req, res) {
 
   try {
     if (!process.env.STRIPE_SECRET_KEY) {
-      return res.status(500).json({ 
-        error: 'STRIPE_SECRET_KEY não configurada no Vercel. Vá em Settings → Environment Variables e adicione sua chave.' 
+      return res.status(500).json({
+        error: 'STRIPE_SECRET_KEY não configurada no Vercel. Vá em Settings → Environment Variables e adicione sua chave.'
       });
     }
 
-    // Buscar todas as assinaturas
-    // Buscar active + trialing (ambos contam como ativos no Stripe)
+    // ─── 1. FETCH SUBSCRIPTIONS ───────────────────────────────────────────
+    // Fetch active and trialing separately to keep counts accurate
     const [activeSubs, trialingSubs] = await Promise.all([
-      stripe.subscriptions.list({ limit: 100, status: 'active' }),
-      stripe.subscriptions.list({ limit: 100, status: 'trialing' })
+      stripe.subscriptions.list({ limit: 100, status: 'active',   expand: ['data.items.data.price'] }),
+      stripe.subscriptions.list({ limit: 100, status: 'trialing', expand: ['data.items.data.price'] }),
     ]);
-    const subscriptions = { data: [...activeSubs.data, ...trialingSubs.data] };
 
-    // Buscar clientes
-    const customers = await stripe.customers.list({
-      limit: 100
-    });
+    const activeCount   = activeSubs.data.length;
+    const trialingCount = trialingSubs.data.length;
 
-    // Calcular métricas
-    const activeCount = activeSubs.data.length;     // pagantes
-    const trialingCount = trialingSubs.data.length; // em trial
-    const activeCustomers = activeCount + trialingCount;
-    
-    let mrr = 0;
-    let totalLTV = 0;
-    let canceledLastMonth = 0;
-
-    subscriptions.data.forEach(sub => {
-      // Calcular MRR por assinatura
-      if (sub.items.data[0]?.price) {
-        const price = sub.items.data[0].price;
-        if (price.recurring) {
-          const amount = (price.unit_amount || 0) / 100;
-          const interval = price.recurring.interval;
-          const count = price.recurring.interval_count || 1;
-          // Converter qualquer intervalo para valor mensal equivalente
-          if (interval === 'month') {
-            mrr += amount / count;
-          } else if (interval === 'year') {
-            mrr += (amount / count) / 12;
-          } else if (interval === 'week') {
-            mrr += (amount / count) * (52 / 12);
-          } else if (interval === 'day') {
-            mrr += (amount / count) * (365 / 12);
-          }
+    // ─── 2. MRR — only from ACTIVE (paying) subscriptions ─────────────────
+    // Trialing customers are not paying yet, so exclude them from MRR
+    function subToMonthlyAmount(sub) {
+      let monthly = 0;
+      for (const item of sub.items.data) {
+        const price    = item.price;
+        const qty      = item.quantity || 1;
+        const amount   = (price.unit_amount || 0) / 100; // cents → BRL
+        const interval = price.recurring?.interval;
+        if (!interval) continue;
+        if (interval === 'month') {
+          monthly += amount * qty;
+        } else if (interval === 'year') {
+          monthly += (amount / 12) * qty;
+        } else if (interval === 'week') {
+          monthly += (amount * 52 / 12) * qty;
+        } else if (interval === 'day') {
+          monthly += (amount * 365 / 12) * qty;
         }
       }
-    });
-
-    // Buscar cancelamentos do mês passado (aproximado)
-    const monthAgo = Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60);
-    const canceledSubs = await stripe.subscriptions.list({
-      status: 'canceled',
-      created: { gte: monthAgo },
-      limit: 100
-    });
-
-    canceledLastMonth = canceledSubs.data.length;
-
-    // Calcular churn rate (%)
-    const churnRate = activeCustomers > 0 
-      ? (canceledLastMonth / (activeCustomers + canceledLastMonth)) * 100 
-      : 0;
-
-    // Calcular ticket médio
-    const avgTicket = activeCustomers > 0 ? mrr / activeCustomers : 0;
-
-    // Calcular LTV (assumindo 12 meses de retenção)
-    const ltv = avgTicket > 0 && churnRate < 100 
-      ? (avgTicket * 12) / (churnRate / 100 || 1)
-      : avgTicket * 12;
-
-    // Calcular receita YTD (esse ano até agora)
-    const startOfYear = new Date();
-    startOfYear.setMonth(0);
-    startOfYear.setDate(1);
-    startOfYear.setHours(0, 0, 0, 0);
-    const startOfYearUnix = Math.floor(startOfYear.getTime() / 1000);
-
-    const invoices = await stripe.invoices.list({
-      created: { gte: startOfYearUnix },
-      limit: 100
-    });
-
-    let revenueYtd = 0;
-    invoices.data.forEach(inv => {
-      if (inv.paid || inv.status === 'paid') {
-        revenueYtd += (inv.total || 0) / 100;
-      }
-    });
-
-    // Buscar transações recentes (charges)
-    const charges = await stripe.charges.list({
-      limit: 10
-    });
-
-    const transactions = charges.data.map(charge => ({
-      description: charge.description || 'Cobrança Stripe',
-      amount: charge.amount / 100,
-      date: new Date(charge.created * 1000).toLocaleDateString('pt-BR'),
-      status: charge.paid ? 'aprovada' : 'pendente'
-    }));
-
-    // Retornar métricas formatadas
-    res.status(200).json({
-      metrics: {
-        mrr: `R$ ${mrr.toFixed(2).replace('.', ',')}`,
-        activeCustomers: activeCustomers,
-        activeCount: activeCount,
-        trialingCount: trialingCount,
-        churnRate: `${churnRate.toFixed(2).replace('.', ',')}`,
-        avgTicket: `R$ ${avgTicket.toFixed(2).replace('.', ',')}`,
-        ltv: `R$ ${Math.max(ltv, 0).toFixed(2).replace('.', ',')}`,
-        revenueYtd: `R$ ${revenueYtd.toFixed(2).replace('.', ',')}`
-      },
-      transactions: transactions,
-      lastUpdated: new Date().toISOString(),
-      dataPoints: {
-        activeSubscriptions: activeCustomers,
-        activeCount: activeCount,
-        trialingCount: trialingCount,
-        canceledLastMonth: canceledLastMonth,
-        totalCharges: charges.data.length
-      }
-    });
-
-  } catch (error) {
-    console.error('Erro ao buscar métricas:', error);
-    
-    let errorMessage = 'Erro ao buscar dados do Stripe';
-    
-    if (error.message.includes('Invalid API Key')) {
-      errorMessage = 'Chave Stripe inválida. Verifique em Vercel → Environment Variables';
-    } else if (error.message.includes('Stripe API')) {
-      errorMessage = `Erro da API Stripe: ${error.message}`;
+      return monthly;
     }
 
-    res.status(500).json({ 
-      error: errorMessage,
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    const mrr = activeSubs.data.reduce((sum, sub) => sum + subToMonthlyAmount(sub), 0);
+
+    // ─── 3. TICKET MÉDIO ──────────────────────────────────────────────────
+    const avgTicket = activeCount > 0 ? mrr / activeCount : 0;
+
+    // ─── 4. MRR MOVEMENT (New / Expansion / Contraction / Churn) ─────────
+    // Determine "this month" window
+    const now        = new Date();
+    const monthStart = Math.floor(new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000);
+    const monthEnd   = Math.floor(now.getTime() / 1000);
+
+    // New MRR: active subs whose start_date is within this month
+    let mrrNew = 0;
+    for (const sub of activeSubs.data) {
+      if (sub.start_date >= monthStart && sub.start_date <= monthEnd) {
+        mrrNew += subToMonthlyAmount(sub);
+      }
+    }
+
+    // Churned MRR: canceled subs this month
+    const canceledThisMonth = await stripe.subscriptions.list({
+      limit: 100,
+      status: 'canceled',
+      created: { gte: monthStart },
+      expand: ['data.items.data.price'],
+    });
+    let mrrChurn = 0;
+    for (const sub of canceledThisMonth.data) {
+      mrrChurn += subToMonthlyAmount(sub);
+    }
+
+    // Expansion / Contraction: requires subscription history — approximate via
+    // comparing current vs previous plan amounts is complex without webhooks.
+    // Set to 0 as placeholder (webhook-based tracking needed for accuracy).
+    const mrrExpansion   = 0;
+    const mrrContraction = 0;
+
+    // ─── 5. YTD REVENUE ──────────────────────────────────────────────────
+    const yearStart = Math.floor(new Date(now.getFullYear(), 0, 1).getTime() / 1000);
+    const chargesYTD = await stripe.charges.list({
+      limit: 100,
+      created: { gte: yearStart },
+    });
+    const revenueYTD = chargesYTD.data
+      .filter(c => c.paid && !c.refunded)
+      .reduce((sum, c) => sum + c.amount / 100, 0);
+
+    // ─── 6. CHURN RATE ────────────────────────────────────────────────────
+    // churn = canceled this month / (active at start of month)
+    // Active at start ≈ activeCount + canceledThisMonth.data.length
+    const totalAtStart = activeCount + canceledThisMonth.data.length;
+    const churnRate    = totalAtStart > 0
+      ? (canceledThisMonth.data.length / totalAtStart) * 100
+      : 0;
+
+    // ─── 7. LTV (PROJECTION) ─────────────────────────────────────────────
+    // LTV = avgTicket / churnRate%  (classic formula, projection only)
+    const ltv = churnRate > 0 ? avgTicket / (churnRate / 100) : avgTicket * 24;
+
+    // ─── 8. TRIAL → PAID CONVERSION ──────────────────────────────────────
+    // Simple ratio: active / (active + trialing)
+    const totalEver    = activeCount + trialingCount;
+    const conversionRate = totalEver > 0 ? (activeCount / totalEver) * 100 : 0;
+
+    // ─── 9. RECENT TRANSACTIONS ──────────────────────────────────────────
+    const recentCharges = await stripe.charges.list({ limit: 5 });
+    const transactions  = recentCharges.data.map(c => ({
+      id:       c.id,
+      amount:   c.amount / 100,
+      currency: c.currency.toUpperCase(),
+      status:   c.status,
+      created:  c.created,
+      description: c.description || c.billing_details?.name || 'Pagamento',
+    }));
+
+    // ─── RESPONSE ─────────────────────────────────────────────────────────
+    return res.status(200).json({
+      // Core metrics
+      mrr:           parseFloat(mrr.toFixed(2)),
+      activeCustomers: activeCount,
+      trialingCount,
+      churnRate:     parseFloat(churnRate.toFixed(2)),
+      avgTicket:     parseFloat(avgTicket.toFixed(2)),
+      ltv:           parseFloat(ltv.toFixed(2)),
+      revenueYTD:    parseFloat(revenueYTD.toFixed(2)),
+
+      // MRR Movement
+      mrrMovement: {
+        novo:        parseFloat(mrrNew.toFixed(2)),
+        expansao:    parseFloat(mrrExpansion.toFixed(2)),
+        contracao:   parseFloat(mrrContraction.toFixed(2)),
+        cancelamento: parseFloat(mrrChurn.toFixed(2)),
+      },
+
+      // Trial conversion
+      conversionRate: parseFloat(conversionRate.toFixed(1)),
+
+      // Recent transactions
+      transactions,
+
+      // Meta
+      updatedAt: new Date().toISOString(),
+    });
+
+  } catch (err) {
+    console.error('Metrics API error:', err);
+    return res.status(500).json({
+      error: err.message || 'Erro interno do servidor',
     });
   }
 }
