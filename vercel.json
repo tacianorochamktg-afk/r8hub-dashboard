@@ -1,14 +1,10 @@
 {
-  "buildCommand": "npm install",
-  "outputDirectory": ".",
-  "env": {
-    "STRIPE_SECRET_KEY": "@stripe_secret_key",
-    "NODE_ENV": "production"
-  },
-  "functions": {
-    "api/metrics.js": {
-      "maxDuration": 60,
-      "memory": 1024
+    "buildCommand": "npm install",
+    "outputDirectory": ".",
+    "functions": {
+          "api/metrics.js": {
+                  "maxDuration": 60,
+                  "memory": 1024
+          }
     }
-  }
 }
