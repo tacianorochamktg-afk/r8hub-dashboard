@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R8 Hub - Growth Dashboard em Tempo Real</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0a0e27 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Fundo com grid 3D */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(0deg, transparent 24%, rgba(0, 102, 255, 0.05) 25%, rgba(0, 102, 255, 0.05) 26%, transparent 27%, transparent 74%, rgba(0, 102, 255, 0.05) 75%, rgba(0, 102, 255, 0.05) 76%, transparent 77%, transparent),
+                linear-gradient(90deg, transparent 24%, rgba(0, 102, 255, 0.05) 25%, rgba(0, 102, 255, 0.05) 26%, transparent 27%, transparent 74%, rgba(0, 102, 255, 0.05) 75%, rgba(0, 102, 255, 0.05) 76%, transparent 77%, transparent);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 50%, rgba(0, 102, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 50px;
+            padding: 0 10px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #0066ff, #00d4ff);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 900;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .status-text {
+            font-size: 13px;
+            color: #8a8f9e;
+        }
+
+        .refresh-btn {
+            background: rgba(0, 102, 255, 0.1);
+            border: 1px solid rgba(0, 102, 255, 0.3);
+            color: #0066ff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(0, 102, 255, 0.2);
+            border-color: #0066ff;
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Title */
+        .main-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 40px;
+            letter-spacing: -0.5px;
+        }
+
+        /* Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        /* Card */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 102, 255, 0.2);
+            border-radius: 12px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 102, 255, 0.5), transparent);
+        }
+
+        .card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(0, 102, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .card-label {
+            font-size: 12px;
+            color: #8a8f9e;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .card-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #ffffff, #a8b0c0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .card-description {
+            font-size: 13px;
+            color: #8a8f9e;
+            line-height: 1.6;
+        }
+
+        .card-insight {
+            background: rgba(0, 102, 255, 0.1);
+            border-left: 3px solid #0066ff;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: #a8c5ff;
+        }
+
+        /* Status Indicator */
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00d942;
+            margin-right: 6px;
+        }
+
+        .status-indicator.warning {
+            background: #ff9500;
+        }
+
+        .status-indicator.danger {
+            background: #ff6b6b;
+        }
+
+        /* Section Title */
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 40px 0 25px 0;
+            letter-spacing: -0.5px;
+        }
+
+        /* Action Cards */
+        .action-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 102, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+
+        .action-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(0, 102, 255, 0.4);
+        }
+
+        .action-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #0066ff;
+        }
+
+        .action-description {
+            font-size: 13px;
+            color: #8a8f9e;
+            line-height: 1.6;
+        }
+
+        /* Two Column */
+        .two-column {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        /* Full Width */
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Loading State */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0, 102, 255, 0.3);
+            border-top: 2px solid #0066ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Error State */
+        .error-banner {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            color: #ff8a8a;
+            font-size: 13px;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(0, 102, 255, 0.1);
+            text-align: center;
+            color: #8a8f9e;
+            font-size: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-title {
+                font-size: 24px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 20px;
+                align-items: flex-start;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">R8</div>
+                <span>R8 Hub Growth Dashboard</span>
+            </div>
+            <div class="header-right">
+                <div class="status-text" id="lastUpdate">Carregando...</div>
+                <button class="refresh-btn" id="refreshBtn" onclick="fetchMetrics()">
+                    🔄 Atualizar
+                </button>
+            </div>
+        </div>
+
+        <!-- Title -->
+        <div class="main-title">Seu Negócio em Tempo Real</div>
+
+        <!-- Error Banner -->
+        <div id="errorBanner" style="display: none;"></div>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid" id="metricsGrid">
+            <div class="card">
+                <div class="card-label">Carregando métricas...</div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="loading"></div>
+                    <span style="color: #8a8f9e;">Buscando dados do Stripe</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Insights Section -->
+        <div class="section-title">💡 O Que Seus Dados Dizem</div>
+
+        <div class="metrics-grid" id="insightsGrid">
+            <!-- Insights gerados dinamicamente -->
+        </div>
+
+        <!-- Ações Recomendadas -->
+        <div class="section-title">🎯 Próximas Ações para Crescer</div>
+
+        <div class="metrics-grid" id="actionsGrid">
+            <!-- Ações geradas dinamicamente -->
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Dashboard criado com ❤️ para R8 Hub</p>
+            <p style="margin-top: 8px;">Dados atualizados em tempo real do Stripe</p>
+        </div>
+    </div>
+
+    <script>
+        const API_ENDPOINT = '/api/metrics';
+
+        async function fetchMetrics() {
+            const btn = document.getElementById('refreshBtn');
+            const errorBanner = document.getElementById('errorBanner');
+            
+            btn.disabled = true;
+            errorBanner.style.display = 'none';
+
+            try {
+                const response = await fetch(API_ENDPOINT);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Erro ao buscar métricas');
+                }
+
+                displayMetrics(data.metrics, data.dataPoints);
+                displayInsights(data.metrics, data.dataPoints);
+                displayActions(data.metrics, data.dataPoints);
+                
+                document.getElementById('lastUpdate').textContent = 
+                    `✅ Atualizado às ${new Date().toLocaleTimeString('pt-BR')}`;
+
+            } catch (error) {
+                console.error('Erro:', error);
+                errorBanner.innerHTML = `⚠️ ${error.message}`;
+                errorBanner.style.display = 'block';
+                displayError();
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function displayMetrics(metrics, dataPoints) {
+            const grid = document.getElementById('metricsGrid');
+            grid.innerHTML = '';
+
+            const cards = [
+                {
+                    label: 'Receita Mensal (MRR)',
+                    value: metrics.mrr,
+                    description: 'Quanto você ganha por mês de forma recorrente',
+                    insight: 'Use para projetar crescimento e planejar investimentos'
+                },
+                {
+                    label: 'Clientes Ativos',
+                    value: metrics.activeCustomers,
+                    description: 'Assinaturas ativas no momento',
+                    insight: 'Cada cliente novo = crescimento. Foco em retenção!'
+                },
+                {
+                    label: 'Taxa de Cancelamento',
+                    value: metrics.churnRate,
+                    description: 'Percentual de clientes que cancelam por mês',
+                    insight: 'Acima de 5% = problema. Invista em satisfação!'
+                },
+                {
+                    label: 'Ticket Médio',
+                    value: metrics.avgTicket,
+                    description: 'Receita média por cliente por mês',
+                    insight: 'Aumente com upsells e planos premium'
+                },
+                {
+                    label: 'LTV (Lifetime Value)',
+                    value: metrics.ltv,
+                    description: 'Quanto cada cliente vale no total',
+                    insight: 'Quanto você pode gastar para conquistar clientes'
+                },
+                {
+                    label: 'Receita Este Ano (YTD)',
+                    value: metrics.revenueYtd,
+                    description: 'Total recebido desde janeiro',
+                    insight: 'Seu crescimento acumulado do ano'
+                }
+            ];
+
+            cards.forEach(card => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `
+                    <div class="card-label">${card.label}</div>
+                    <div class="card-value">${card.value}</div>
+                    <div class="card-description">${card.description}</div>
+                    <div class="card-insight">💡 ${card.insight}</div>
+                `;
+                grid.appendChild(div);
+            });
+        }
+
+        function displayInsights(metrics, dataPoints) {
+            const grid = document.getElementById('insightsGrid');
+            grid.innerHTML = '';
+
+            const insights = generateInsights(metrics, dataPoints);
+
+            insights.forEach(insight => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <div style="font-size: 20px; margin-top: 2px;">${insight.emoji}</div>
+                        <div style="flex: 1;">
+                            <div class="card-label">${insight.title}</div>
+                            <div class="card-description">${insight.description}</div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(div);
+            });
+        }
+
+        function displayActions(metrics, dataPoints) {
+            const grid = document.getElementById('actionsGrid');
+            grid.innerHTML = '';
+
+            const actions = generateActions(metrics, dataPoints);
+
+            actions.forEach(action => {
+                const div = document.createElement('div');
+                div.className = 'action-card';
+                div.innerHTML = `
+                    <div class="action-title">${action.title}</div>
+                    <div class="action-description">${action.description}</div>
+                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0, 102, 255, 0.1); font-size: 11px; color: #0066ff;">
+                        ${action.metric}
+                    </div>
+                `;
+                grid.appendChild(div);
+            });
+        }
+
+        function generateInsights(metrics, dataPoints) {
+            const insights = [];
+
+            // Parse valores para cálculos
+            const mrrNum = parseFloat(metrics.mrr.replace(/[^\d,]/g, '').replace(',', '.'));
+            const churnNum = parseFloat(metrics.churnRate.replace(/[^\d,]/g, '').replace(',', '.'));
+
+            if (dataPoints.activeSubscriptions > 20) {
+                insights.push({
+                    emoji: '🚀',
+                    title: 'Você está crescendo!',
+                    description: `${dataPoints.activeSubscriptions} clientes pagantes significa que seu produto está funcionando. Continua conquistando!`
+                });
+            }
+
+            if (churnNum > 10) {
+                insights.push({
+                    emoji: '⚠️',
+                    title: 'Atenção ao churn',
+                    description: `${metrics.churnRate} de cancelamento é alto. Concentre em onboarding e suporte nos primeiros 30 dias.`
+                });
+            }
+
+            if (mrrNum > 1000) {
+                insights.push({
+                    emoji: '💰',
+                    title: 'Receita significativa',
+                    description: `R$ ${metrics.mrr} por mês é receita real. Invista em crescimento!`
+                });
+            }
+
+            if (dataPoints.canceledLastMonth === 0) {
+                insights.push({
+                    emoji: '✨',
+                    title: 'Nenhum cancelamento este mês',
+                    description: 'Excelente! Seus clientes estão satisfeitos. Mantenha a qualidade!'
+                });
+            }
+
+            return insights;
+        }
+
+        function generateActions(metrics, dataPoints) {
+            const actions = [];
+            const churnNum = parseFloat(metrics.churnRate.replace(/[^\d,]/g, '').replace(',', '.'));
+
+            if (churnNum > 15) {
+                actions.push({
+                    title: '1️⃣ Reduzir Churn AGORA',
+                    description: 'Seu churn está acima de 15%. Fale com clientes que cancelaram, entenda os motivos, melhore o produto.',
+                    metric: 'Impacto: Se reduzir para 5%, seu MRR cresce 100% em 6 meses'
+                });
+            }
+
+            actions.push({
+                title: '2️⃣ Fechar Mais Deals',
+                description: 'Se tem pipeline, priorize follow-ups. Cada cliente novo = mais receita.',
+                metric: '10 clientes novos = +' + metrics.avgTicket + '/mês'
+            });
+
+            actions.push({
+                title: '3️⃣ Upsell para Clientes Atuais',
+                description: 'Ofereça planos superiores ou complementos. É mais barato que conquistar novos clientes.',
+                metric: 'Se 30% fizerem upsell = +20-30% no MRR'
+            });
+
+            actions.push({
+                title: '4️⃣ Content Marketing',
+                description: 'Crie conteúdo sobre "vender no WhatsApp" (seu público). Capture leads organicamente.',
+                metric: 'CAC = R$ 0. LTV/CAC = infinito = muito lucrativo!'
+            });
+
+            actions.push({
+                title: '5️⃣ Referral Program',
+                description: 'Ofereça desconto ou crédito para clientes que indicarem amigos. Crescimento viral!',
+                metric: 'CAC zero = lucro máximo por cliente'
+            });
+
+            return actions;
+        }
+
+        function displayError() {
+            const grid = document.getElementById('metricsGrid');
+            grid.innerHTML = `
+                <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-label">Erro ao carregar dados</div>
+                    <div class="card-description">
+                        Verifique se sua chave Stripe está corretamente configurada no Vercel.
+                        <br><br>
+                        <strong>Dica:</strong> Vercel → Settings → Environment Variables → Verifique STRIPE_SECRET_KEY
+                    </div>
+                </div>
+            `;
+        }
+
+        // Auto-load ao abrir
+        window.addEventListener('load', fetchMetrics);
+    </script>
+</body>
+</html>
