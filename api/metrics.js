@@ -31,7 +31,7 @@ export default async function handler(req, res) {
       stripe.subscriptions.list({ limit: 100, status: 'trialing', expand: ['data.items.data.price'] }),
     ]);
 
-    const activeCount   = activeSubs.data.length;
+    const activeCount   = activeSubs.data.length + pastDueSubs.data.length;
     const pastDueCount  = pastDueSubs.data.length;
     const allSubs       = [...activeSubs.data, ...pastDueSubs.data, ...trialingSubs.data];
       const trialingCount = trialingSubs.data.length;
@@ -61,10 +61,10 @@ export default async function handler(req, res) {
     }
 
     // MRR = active only (Stripe: exclui trialing, past_due, canceled)
-    const mrr = activeSubs.data.reduce((sum, sub) => sum + subToMonthlyAmount(sub), 0);
+    const mrr = [...activeSubs.data, ...pastDueSubs.data].reduce((sum, sub) => sum + subToMonthlyAmount(sub), 0);
 
     // MRR from paying only (for ticket médio)
-    const mrrActivePaying = activeSubs.data.reduce((sum, sub) => sum + subToMonthlyAmount(sub), 0);
+    const mrrActivePaying = [...activeSubs.data, ...pastDueSubs.data].reduce((sum, sub) => sum + subToMonthlyAmount(sub), 0);
 
     // ─── 3. TICKET MÉDIO ──────────────────────────────────────────────────
     // Ticket médio = MRR de pagantes / número de pagantes (igual ao Stripe)
