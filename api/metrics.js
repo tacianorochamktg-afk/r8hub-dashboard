@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     }
 
     // ─── 1. FETCH SUBSCRIPTIONS ───────────────────────────────────────────
-    // Stripe's MRR includes BOTH active and trialing (committed revenue)
+    // MRR = somente 'active'. Trialing buscado separado apenas para exibir contador.
     const [activeSubs, trialingSubs] = await Promise.all([
       stripe.subscriptions.list({ limit: 100, status: 'active',   expand: ['data.items.data.price'] }),
       stripe.subscriptions.list({ limit: 100, status: 'trialing', expand: ['data.items.data.price'] }),
@@ -35,8 +35,8 @@ export default async function handler(req, res) {
     const allSubs       = [...activeSubs.data, ...trialingSubs.data];
 
     // ─── 2. MRR helper ────────────────────────────────────────────────────
-    // Stripe MRR = sum of all active + trialing subscription amounts normalized to monthly
-    // This matches Stripe's own MRR metric in their dashboard
+    // Stripe MRR = soma apenas de assinaturas 'active', normalizadas para mensal
+    // Alinhado com o MRR exibido no Stripe Dashboard (status=active apenas)
     function subToMonthlyAmount(sub) {
       let monthly = 0;
       for (const item of sub.items.data) {
@@ -58,8 +58,8 @@ export default async function handler(req, res) {
       return monthly;
     }
 
-    // MRR = active + trialing (matches Stripe dashboard)
-    const mrr = allSubs.reduce((sum, sub) => sum + subToMonthlyAmount(sub), 0);
+    // MRR = active only (Stripe: exclui trialing, past_due, canceled)
+    const mrr = activeSubs.data.reduce((sum, sub) => sum + subToMonthlyAmount(sub), 0);
 
     // MRR from paying only (for ticket médio)
     const mrrActivePaying = activeSubs.data.reduce((sum, sub) => sum + subToMonthlyAmount(sub), 0);
@@ -75,7 +75,7 @@ export default async function handler(req, res) {
 
     // New MRR: subs started this month
     let mrrNew = 0;
-    for (const sub of allSubs) {
+    for (const sub of activeSubs.data) {
       if (sub.start_date >= monthStart && sub.start_date <= monthEnd) {
         mrrNew += subToMonthlyAmount(sub);
       }
