@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   // Permitir CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');h
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -34,6 +34,7 @@ export default async function handler(req, res) {
     const activeCount   = activeSubs.data.length + pastDueSubs.data.length;
     const pastDueCount  = pastDueSubs.data.length;
     const allSubs       = [...activeSubs.data, ...pastDueSubs.data, ...trialingSubs.data];
+      const trialingCount = trialingSubs.data.length;
 
     // ─── 2. MRR helper ────────────────────────────────────────────────────
     // Stripe MRR = soma apenas de assinaturas 'active', normalizadas para mensal
