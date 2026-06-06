@@ -1,616 +1,503 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>R8 Hub - Growth Dashboard em Tempo Real</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>R8 Hub — Growth Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --blue:   #1A6BFF;
+      --bl:     #4D8FFF;
+      --bd:     #0D3B9C;
+      --bk:     #070A0F;
+      --s1:     #0D1117;
+      --s2:     #131920;
+      --border: rgba(255,255,255,0.08);
+      --white:  #FFFFFF;
+      --gray:   #8A95A3;
+      --glight: #C4CAD2;
+      --green:  #22C55E;
+      --amber:  #F59E0B;
+      --red:    #EF4444;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, sans-serif;
+      background: var(--bk);
+      color: var(--white);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0a0e27 100%);
-            color: #ffffff;
-            min-height: 100vh;
-            position: relative;
-            overflow-x: hidden;
-        }
+    /* ── HEADER ── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(7,10,15,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-mark {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--blue);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px; color: #fff;
+    }
+    .logo-name { font-weight: 600; font-size: 15px; color: var(--white); }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .status-dot {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--gray);
+    }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+    .btn-refresh {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--blue); color: #fff;
+      border: none; border-radius: 8px;
+      padding: 7px 14px; font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-refresh:hover { background: var(--bl); }
 
-        /* Fundo com grid 3D */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                linear-gradient(0deg, transparent 24%, rgba(0, 102, 255, 0.05) 25%, rgba(0, 102, 255, 0.05) 26%, transparent 27%, transparent 74%, rgba(0, 102, 255, 0.05) 75%, rgba(0, 102, 255, 0.05) 76%, transparent 77%, transparent),
-                linear-gradient(90deg, transparent 24%, rgba(0, 102, 255, 0.05) 25%, rgba(0, 102, 255, 0.05) 26%, transparent 27%, transparent 74%, rgba(0, 102, 255, 0.05) 75%, rgba(0, 102, 255, 0.05) 76%, transparent 77%, transparent);
-            background-size: 60px 60px;
-            pointer-events: none;
-            z-index: 0;
-            opacity: 0.3;
-        }
+    /* ── LAYOUT ── */
+    main { max-width: 1200px; margin: 0 auto; padding: 40px 24px 80px; }
 
-        body::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 30% 50%, rgba(0, 102, 255, 0.1) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: 0;
-        }
+    .page-title {
+      font-size: 26px; font-weight: 700; color: var(--white);
+      margin-bottom: 4px;
+    }
+    .page-sub { font-size: 14px; color: var(--gray); margin-bottom: 36px; }
 
-        .container {
-            position: relative;
-            z-index: 1;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
+    /* ── SECTION LABEL ── */
+    .section-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--gray);
+      margin-bottom: 14px; margin-top: 36px;
+    }
 
-        /* Header */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 50px;
-            padding: 0 10px;
-        }
+    /* ── CARD GRID ── */
+    .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
+    @media (max-width: 900px) {
+      .grid-4, .grid-3 { grid-template-columns: repeat(2,1fr); }
+    }
+    @media (max-width: 540px) {
+      .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+    }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 24px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-        }
+    /* ── CARD ── */
+    .card {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .card-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--gray);
+      margin-bottom: 8px;
+    }
+    .card-value {
+      font-size: 28px; font-weight: 700; color: var(--white);
+      line-height: 1.1; margin-bottom: 4px;
+    }
+    .card-value.blue   { color: var(--blue); }
+    .card-value.green  { color: var(--green); }
+    .card-value.amber  { color: var(--amber); }
+    .card-value.red    { color: var(--red); }
+    .card-desc {
+      font-size: 12px; color: var(--gray); margin-bottom: 12px;
+    }
+    .card-note {
+      border-left: 3px solid var(--blue);
+      background: rgba(26,107,255,0.06);
+      border-radius: 0 6px 6px 0;
+      padding: 8px 10px;
+      font-size: 12px; color: var(--glight);
+    }
+    .card-note.green  { border-color: var(--green); background: rgba(34,197,94,0.06); }
+    .card-note.amber  { border-color: var(--amber); background: rgba(245,158,11,0.06); }
+    .card-note.red    { border-color: var(--red); background: rgba(239,68,68,0.06); }
 
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #0066ff, #00d4ff);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            font-weight: 900;
-        }
+    /* ── LOADING / ERROR ── */
+    .loading-state {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--gray); font-size: 13px; padding: 24px 0;
+    }
+    .spinner {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid var(--border); border-top-color: var(--blue);
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-box {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 10px; padding: 20px;
+      color: var(--red); font-size: 13px;
+    }
 
-        .header-right {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
+    /* ── MRR MOVEMENT CARD ── */
+    .movement-card {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+    }
+    .movement-title { font-size: 13px; font-weight: 600; color: var(--glight); margin-bottom: 20px; }
+    .movement-bars { display: flex; flex-direction: column; gap: 12px; }
+    .movement-row { display: flex; align-items: center; gap: 12px; }
+    .movement-row-label { font-size: 12px; color: var(--gray); width: 100px; flex-shrink: 0; }
+    .movement-bar-track {
+      flex: 1; height: 6px; border-radius: 3px;
+      background: rgba(255,255,255,0.06); overflow: hidden;
+    }
+    .movement-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+    .fill-green  { background: var(--green); }
+    .fill-blue   { background: var(--blue); }
+    .fill-amber  { background: var(--amber); }
+    .fill-red    { background: var(--red); }
+    .movement-row-val { font-size: 12px; font-weight: 600; color: var(--white); width: 80px; text-align: right; }
 
-        .status-text {
-            font-size: 13px;
-            color: #8a8f9e;
-        }
+    /* ── TRANSACTIONS ── */
+    .tx-list { display: flex; flex-direction: column; gap: 1px; }
+    .tx-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .tx-item:last-child { border-bottom: none; }
+    .tx-desc { font-size: 13px; color: var(--glight); }
+    .tx-date { font-size: 11px; color: var(--gray); margin-top: 2px; }
+    .tx-amount { font-size: 14px; font-weight: 600; color: var(--green); }
 
-        .refresh-btn {
-            background: rgba(0, 102, 255, 0.1);
-            border: 1px solid rgba(0, 102, 255, 0.3);
-            color: #0066ff;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
+    /* ── ACTIONS ── */
+    .action-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 16px; }
+    .action-card {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px;
+    }
+    .action-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .action-badge {
+      width: 24px; height: 24px; border-radius: 6px;
+      background: var(--blue); display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .action-title { font-size: 13px; font-weight: 600; color: var(--white); }
+    .action-desc { font-size: 12px; color: var(--gray); line-height: 1.5; margin-bottom: 10px; }
+    .action-impact {
+      font-size: 11px; font-weight: 500; color: var(--blue);
+      background: rgba(26,107,255,0.1);
+      padding: 5px 8px; border-radius: 5px; display: inline-block;
+    }
 
-        .refresh-btn:hover {
-            background: rgba(0, 102, 255, 0.2);
-            border-color: #0066ff;
-        }
+    /* ── ALERT CARD ── */
+    .alert-card {
+      background: rgba(245,158,11,0.06);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 10px; padding: 16px 20px;
+      display: flex; align-items: center; gap: 12px;
+      font-size: 13px; color: var(--glight);
+      margin-bottom: 16px;
+    }
+    .alert-icon { font-size: 16px; }
 
-        .refresh-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* Title */
-        .main-title {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 40px;
-            letter-spacing: -0.5px;
-        }
-
-        /* Grid */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-
-        /* Card */
-        .card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(0, 102, 255, 0.2);
-            border-radius: 12px;
-            padding: 24px;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(0, 102, 255, 0.5), transparent);
-        }
-
-        .card:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(0, 102, 255, 0.4);
-            transform: translateY(-2px);
-        }
-
-        .card-label {
-            font-size: 12px;
-            color: #8a8f9e;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
-        }
-
-        .card-value {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 12px;
-            background: linear-gradient(135deg, #ffffff, #a8b0c0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .card-description {
-            font-size: 13px;
-            color: #8a8f9e;
-            line-height: 1.6;
-        }
-
-        .card-insight {
-            background: rgba(0, 102, 255, 0.1);
-            border-left: 3px solid #0066ff;
-            padding: 12px;
-            border-radius: 6px;
-            margin-top: 12px;
-            font-size: 12px;
-            color: #a8c5ff;
-        }
-
-        /* Status Indicator */
-        .status-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #00d942;
-            margin-right: 6px;
-        }
-
-        .status-indicator.warning {
-            background: #ff9500;
-        }
-
-        .status-indicator.danger {
-            background: #ff6b6b;
-        }
-
-        /* Section Title */
-        .section-title {
-            font-size: 20px;
-            font-weight: 700;
-            margin: 40px 0 25px 0;
-            letter-spacing: -0.5px;
-        }
-
-        /* Action Cards */
-        .action-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(0, 102, 255, 0.2);
-            border-radius: 12px;
-            padding: 20px;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s;
-        }
-
-        .action-card:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(0, 102, 255, 0.4);
-        }
-
-        .action-title {
-            font-size: 15px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: #0066ff;
-        }
-
-        .action-description {
-            font-size: 13px;
-            color: #8a8f9e;
-            line-height: 1.6;
-        }
-
-        /* Two Column */
-        .two-column {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-
-        /* Full Width */
-        .full-width {
-            grid-column: 1 / -1;
-        }
-
-        /* Loading State */
-        .loading {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(0, 102, 255, 0.3);
-            border-top: 2px solid #0066ff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Error State */
-        .error-banner {
-            background: rgba(255, 107, 107, 0.1);
-            border: 1px solid rgba(255, 107, 107, 0.3);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 20px;
-            color: #ff8a8a;
-            font-size: 13px;
-        }
-
-        /* Footer */
-        .footer {
-            margin-top: 60px;
-            padding-top: 30px;
-            border-top: 1px solid rgba(0, 102, 255, 0.1);
-            text-align: center;
-            color: #8a8f9e;
-            font-size: 12px;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .main-title {
-                font-size: 24px;
-            }
-
-            .header {
-                flex-direction: column;
-                gap: 20px;
-                align-items: flex-start;
-            }
-
-            .header-right {
-                width: 100%;
-                justify-content: space-between;
-            }
-
-            .metrics-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    /* ── FOOTER ── */
+    footer {
+      margin-top: 60px;
+      border-top: 1px solid var(--border);
+      padding: 24px;
+      text-align: center;
+      font-size: 12px; color: var(--gray);
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo">
-                <div class="logo-icon">R8</div>
-                <span>R8 Hub Growth Dashboard</span>
-            </div>
-            <div class="header-right">
-                <div class="status-text" id="lastUpdate">Carregando...</div>
-                <button class="refresh-btn" id="refreshBtn" onclick="fetchMetrics()">
-                    🔄 Atualizar
-                </button>
-            </div>
-        </div>
 
-        <!-- Title -->
-        <div class="main-title">Seu Negócio em Tempo Real</div>
-
-        <!-- Error Banner -->
-        <div id="errorBanner" style="display: none;"></div>
-
-        <!-- Metrics Grid -->
-        <div class="metrics-grid" id="metricsGrid">
-            <div class="card">
-                <div class="card-label">Carregando métricas...</div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div class="loading"></div>
-                    <span style="color: #8a8f9e;">Buscando dados do Stripe</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Insights Section -->
-        <div class="section-title">💡 O Que Seus Dados Dizem</div>
-
-        <div class="metrics-grid" id="insightsGrid">
-            <!-- Insights gerados dinamicamente -->
-        </div>
-
-        <!-- Ações Recomendadas -->
-        <div class="section-title">🎯 Próximas Ações para Crescer</div>
-
-        <div class="metrics-grid" id="actionsGrid">
-            <!-- Ações geradas dinamicamente -->
-        </div>
-
-        <!-- Footer -->
-        <div class="footer">
-            <p>Dashboard criado com ❤️ para R8 Hub</p>
-            <p style="margin-top: 8px;">Dados atualizados em tempo real do Stripe</p>
-        </div>
+<header>
+  <div class="logo">
+    <div class="logo-mark">R8</div>
+    <span class="logo-name">R8 Hub Growth Dashboard</span>
+  </div>
+  <div class="header-right">
+    <div class="status-dot">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText">Carregando...</span>
     </div>
+    <button class="btn-refresh" onclick="fetchMetrics()">Atualizar</button>
+  </div>
+</header>
 
-    <script>
-        const API_ENDPOINT = '/api/metrics';
+<main>
+  <div class="page-title">Seu Negócio em Tempo Real</div>
+  <div class="page-sub">Dados sincronizados diretamente do Stripe</div>
 
-        async function fetchMetrics() {
-            const btn = document.getElementById('refreshBtn');
-            const errorBanner = document.getElementById('errorBanner');
-            
-            btn.disabled = true;
-            errorBanner.style.display = 'none';
+  <!-- LOADING STATE -->
+  <div id="loadingState" class="loading-state">
+    <div class="spinner"></div>
+    Buscando métricas do Stripe...
+  </div>
+  <div id="errorState" class="error-box" style="display:none"></div>
 
-            try {
-                const response = await fetch(API_ENDPOINT);
-                const data = await response.json();
+  <!-- CORE METRICS -->
+  <div id="coreSection" style="display:none">
+    <div class="section-label">Métricas Principais</div>
+    <div class="grid-4" id="coreGrid"></div>
 
-                if (!response.ok) {
-                    throw new Error(data.error || 'Erro ao buscar métricas');
-                }
+    <div class="section-label">Conversão &amp; Retenção</div>
+    <div class="grid-3" id="conversionGrid"></div>
 
-                displayMetrics(data.metrics, data.dataPoints);
-                displayInsights(data.metrics, data.dataPoints);
-                displayActions(data.metrics, data.dataPoints);
-                
-                document.getElementById('lastUpdate').textContent = 
-                    `✅ Atualizado às ${new Date().toLocaleTimeString('pt-BR')}`;
+    <div class="section-label">MRR Movement — Este Mês</div>
+    <div id="mrrMovementSection"></div>
 
-            } catch (error) {
-                console.error('Erro:', error);
-                errorBanner.innerHTML = `⚠️ ${error.message}`;
-                errorBanner.style.display = 'block';
-                displayError();
-            } finally {
-                btn.disabled = false;
-            }
-        }
+    <div class="section-label">Alertas</div>
+    <div id="alertsSection"></div>
 
-        function displayMetrics(metrics, dataPoints) {
-            const grid = document.getElementById('metricsGrid');
-            grid.innerHTML = '';
+    <div class="section-label">Próximas Ações</div>
+    <div class="action-grid" id="actionsGrid"></div>
 
-            const cards = [
-                {
-                    label: 'Receita Mensal (MRR)',
-                    value: metrics.mrr,
-                    description: 'Quanto você ganha por mês de forma recorrente',
-                    insight: 'Use para projetar crescimento e planejar investimentos'
-                },
-                {
-                    label: 'Clientes Ativos',
-                    value: metrics.activeCustomers,
-                    description: 'Assinaturas ativas no momento',
-                    insight: 'Cada cliente novo = crescimento. Foco em retenção!'
-                },
-                {
-                    label: 'Taxa de Cancelamento',
-                    value: metrics.churnRate,
-                    description: 'Percentual de clientes que cancelam por mês',
-                    insight: 'Acima de 5% = problema. Invista em satisfação!'
-                },
-                {
-                    label: 'Ticket Médio',
-                    value: metrics.avgTicket,
-                    description: 'Receita média por cliente por mês',
-                    insight: 'Aumente com upsells e planos premium'
-                },
-                {
-                    label: 'LTV (Lifetime Value)',
-                    value: metrics.ltv,
-                    description: 'Quanto cada cliente vale no total',
-                    insight: 'Quanto você pode gastar para conquistar clientes'
-                },
-                {
-                    label: 'Receita Este Ano (YTD)',
-                    value: metrics.revenueYtd,
-                    description: 'Total recebido desde janeiro',
-                    insight: 'Seu crescimento acumulado do ano'
-                }
-            ];
+    <div class="section-label">Últimas Transações</div>
+    <div class="card" id="txSection"></div>
+  </div>
+</main>
 
-            cards.forEach(card => {
-                const div = document.createElement('div');
-                div.className = 'card';
-                div.innerHTML = `
-                    <div class="card-label">${card.label}</div>
-                    <div class="card-value">${card.value}</div>
-                    <div class="card-description">${card.description}</div>
-                    <div class="card-insight">💡 ${card.insight}</div>
-                `;
-                grid.appendChild(div);
-            });
-        }
+<footer>
+  R8 Hub Growth Dashboard · Dados em tempo real via Stripe API
+</footer>
 
-        function displayInsights(metrics, dataPoints) {
-            const grid = document.getElementById('insightsGrid');
-            grid.innerHTML = '';
+<script>
+const API = '/api/metrics';
 
-            const insights = generateInsights(metrics, dataPoints);
+function fmt(n) {
+  return 'R$ ' + Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtPct(n) { return Number(n).toFixed(1) + '%'; }
+function fmtDate(ts) {
+  return new Date(ts * 1000).toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' });
+}
 
-            insights.forEach(insight => {
-                const div = document.createElement('div');
-                div.className = 'card';
-                div.innerHTML = `
-                    <div style="display: flex; align-items: flex-start; gap: 12px;">
-                        <div style="font-size: 20px; margin-top: 2px;">${insight.emoji}</div>
-                        <div style="flex: 1;">
-                            <div class="card-label">${insight.title}</div>
-                            <div class="card-description">${insight.description}</div>
-                        </div>
-                    </div>
-                `;
-                grid.appendChild(div);
-            });
-        }
+async function fetchMetrics() {
+  const loadingEl = document.getElementById('loadingState');
+  const errorEl   = document.getElementById('errorState');
+  const coreEl    = document.getElementById('coreSection');
+  const statusDot = document.getElementById('statusDot');
+  const statusTxt = document.getElementById('statusText');
 
-        function displayActions(metrics, dataPoints) {
-            const grid = document.getElementById('actionsGrid');
-            grid.innerHTML = '';
+  loadingEl.style.display = 'flex';
+  errorEl.style.display   = 'none';
+  coreEl.style.display    = 'none';
+  statusDot.style.background = '#F59E0B';
 
-            const actions = generateActions(metrics, dataPoints);
+  try {
+    const res  = await fetch(API + '?t=' + Date.now());
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao buscar métricas');
 
-            actions.forEach(action => {
-                const div = document.createElement('div');
-                div.className = 'action-card';
-                div.innerHTML = `
-                    <div class="action-title">${action.title}</div>
-                    <div class="action-description">${action.description}</div>
-                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0, 102, 255, 0.1); font-size: 11px; color: #0066ff;">
-                        ${action.metric}
-                    </div>
-                `;
-                grid.appendChild(div);
-            });
-        }
+    renderCore(data);
+    renderConversion(data);
+    renderMrrMovement(data);
+    renderAlerts(data);
+    renderActions(data);
+    renderTransactions(data);
 
-        function generateInsights(metrics, dataPoints) {
-            const insights = [];
+    loadingEl.style.display = 'none';
+    coreEl.style.display    = 'block';
+    statusDot.style.background = '#22C55E';
+    const now = new Date();
+    statusTxt.textContent = 'Atualizado às ' + now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+  } catch (e) {
+    loadingEl.style.display = 'none';
+    errorEl.style.display   = 'block';
+    errorEl.textContent     = 'Erro: ' + e.message;
+    statusDot.style.background = '#EF4444';
+    statusTxt.textContent = 'Erro na atualização';
+  }
+}
 
-            // Parse valores para cálculos
-            const mrrNum = parseFloat(metrics.mrr.replace(/[^\d,]/g, '').replace(',', '.'));
-            const churnNum = parseFloat(metrics.churnRate.replace(/[^\d,]/g, '').replace(',', '.'));
+function renderCore(d) {
+  const churnColor = d.churnRate > 10 ? 'red' : d.churnRate > 5 ? 'amber' : 'green';
+  const cards = [
+    {
+      label: 'Receita Mensal (MRR)',
+      value: fmt(d.mrr), color: 'blue',
+      desc: 'Receita recorrente mensal dos clientes ativos',
+      note: 'Use para projetar crescimento e planejar investimentos'
+    },
+    {
+      label: 'Clientes Ativos (Pagantes)',
+      value: d.activeCustomers, color: '',
+      desc: 'Assinaturas ativas no Stripe (excluindo trials)',
+      note: 'Cada cliente novo = crescimento. Foco em retenção'
+    },
+    {
+      label: 'Taxa de Cancelamento',
+      value: fmtPct(d.churnRate), color: churnColor,
+      desc: 'Percentual de clientes que cancelam por mês',
+      note: d.churnRate > 5 ? 'Acima de 5% — invista em onboarding e suporte' : 'Dentro do esperado para early-stage'
+    },
+    {
+      label: 'Ticket Médio',
+      value: fmt(d.avgTicket), color: '',
+      desc: 'MRR ÷ clientes ativos (igual ao Stripe)',
+      note: 'Aumente com upsells e planos premium'
+    },
+    {
+      label: 'LTV (Projeção)',
+      value: fmt(d.ltv), color: '',
+      desc: 'Ticket Médio ÷ Churn — estimativa, não valor histórico',
+      note: 'Quanto você pode gastar para conquistar clientes'
+    },
+    {
+      label: 'Receita Este Ano (YTD)',
+      value: fmt(d.revenueYTD), color: '',
+      desc: 'Total recebido desde janeiro (cobranças pagas)',
+      note: 'Seu crescimento acumulado do ano'
+    },
+  ];
+  document.getElementById('coreGrid').innerHTML = cards.map(c => `
+    <div class="card">
+      <div class="card-label">${c.label}</div>
+      <div class="card-value ${c.color}">${c.value}</div>
+      <div class="card-desc">${c.desc}</div>
+      <div class="card-note">${c.note}</div>
+    </div>
+  `).join('');
+}
 
-            if (dataPoints.activeSubscriptions > 20) {
-                insights.push({
-                    emoji: '🚀',
-                    title: 'Você está crescendo!',
-                    description: `${dataPoints.activeSubscriptions} clientes pagantes significa que seu produto está funcionando. Continua conquistando!`
-                });
-            }
+function renderConversion(d) {
+  const total = d.activeCustomers + d.trialingCount;
+  const convColor = d.conversionRate >= 70 ? 'green' : d.conversionRate >= 40 ? 'amber' : 'red';
+  const cards = [
+    {
+      label: 'Clientes Pagantes',
+      value: d.activeCustomers, color: 'green',
+      desc: 'Assinaturas ativas — estão pagando agora',
+      note: 'Fonte de toda a receita recorrente', noteColor: 'green'
+    },
+    {
+      label: 'Em Trial / Teste',
+      value: d.trialingCount, color: 'amber',
+      desc: 'Usuários em período de avaliação gratuita',
+      note: 'Foque em onboarding para converter trials', noteColor: 'amber'
+    },
+    {
+      label: 'Taxa Trial → Pagante',
+      value: fmtPct(d.conversionRate), color: convColor,
+      desc: total + ' usuários total (' + d.activeCustomers + ' pagantes + ' + d.trialingCount + ' trials)',
+      note: d.conversionRate >= 70 ? 'Excelente conversão' : d.conversionRate >= 40 ? 'Conversão razoável — melhore o onboarding' : 'Conversão baixa — revise a experiência de trial',
+      noteColor: convColor
+    },
+  ];
+  document.getElementById('conversionGrid').innerHTML = cards.map(c => `
+    <div class="card">
+      <div class="card-label">${c.label}</div>
+      <div class="card-value ${c.color}">${c.value}</div>
+      <div class="card-desc">${c.desc}</div>
+      <div class="card-note ${c.noteColor || ''}">${c.note}</div>
+    </div>
+  `).join('');
+}
 
-            if (churnNum > 10) {
-                insights.push({
-                    emoji: '⚠️',
-                    title: 'Atenção ao churn',
-                    description: `${metrics.churnRate} de cancelamento é alto. Concentre em onboarding e suporte nos primeiros 30 dias.`
-                });
-            }
+function renderMrrMovement(d) {
+  const mv = d.mrrMovement || {};
+  const novo        = mv.novo        || 0;
+  const expansao    = mv.expansao    || 0;
+  const contracao   = mv.contracao   || 0;
+  const cancelamento = mv.cancelamento || 0;
+  const maxVal = Math.max(novo, expansao, contracao, cancelamento, 1);
 
-            if (mrrNum > 1000) {
-                insights.push({
-                    emoji: '💰',
-                    title: 'Receita significativa',
-                    description: `R$ ${metrics.mrr} por mês é receita real. Invista em crescimento!`
-                });
-            }
+  const rows = [
+    { label: 'Novo MRR',    val: novo,        cls: 'fill-green', color: 'green' },
+    { label: 'Expansão',    val: expansao,    cls: 'fill-blue',  color: 'blue' },
+    { label: 'Contração',   val: contracao,   cls: 'fill-amber', color: 'amber' },
+    { label: 'Cancelamento', val: cancelamento, cls: 'fill-red', color: 'red' },
+  ];
 
-            if (dataPoints.canceledLastMonth === 0) {
-                insights.push({
-                    emoji: '✨',
-                    title: 'Nenhum cancelamento este mês',
-                    description: 'Excelente! Seus clientes estão satisfeitos. Mantenha a qualidade!'
-                });
-            }
+  document.getElementById('mrrMovementSection').innerHTML = `
+    <div class="movement-card">
+      <div class="movement-title">Composição do MRR neste mês</div>
+      <div class="movement-bars">
+        ${rows.map(r => `
+          <div class="movement-row">
+            <span class="movement-row-label">${r.label}</span>
+            <div class="movement-bar-track">
+              <div class="movement-bar-fill ${r.cls}" style="width:${Math.round((r.val/maxVal)*100)}%"></div>
+            </div>
+            <span class="movement-row-val" style="color:var(--${r.color})">${fmt(r.val)}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div style="margin-top:14px; font-size:11px; color:var(--gray)">
+        Expansão/Contração requer rastreamento via webhooks para precisão total. Novo e Cancelamento calculados a partir do Stripe.
+      </div>
+    </div>
+  `;
+}
 
-            return insights;
-        }
+function renderAlerts(d) {
+  const alerts = [];
+  if (d.churnRate > 10) alerts.push('Churn de ' + fmtPct(d.churnRate) + ' está crítico. Contate clientes que cancelaram e revise o onboarding.');
+  else if (d.churnRate > 5) alerts.push('Churn de ' + fmtPct(d.churnRate) + ' está acima do ideal (5%). Concentre em onboarding e suporte nos primeiros 30 dias.');
+  if (d.trialingCount > 0) alerts.push(d.trialingCount + ' usuário(s) em trial. Entre em contato ativamente para aumentar a conversão.');
+  if (!alerts.length) alerts.push('Nenhum alerta crítico no momento. Continue focado em crescimento!');
+  document.getElementById('alertsSection').innerHTML = alerts.map(a => `
+    <div class="alert-card"><span class="alert-icon">⚠️</span>${a}</div>
+  `).join('');
+}
 
-        function generateActions(metrics, dataPoints) {
-            const actions = [];
-            const churnNum = parseFloat(metrics.churnRate.replace(/[^\d,]/g, '').replace(',', '.'));
+function renderActions(d) {
+  const actions = [
+    { n:1, title:'Reduzir Churn', desc:'Fale com clientes que cancelaram, entenda os motivos, melhore o produto.', impact:'Reduzir 50% do churn dobra seu MRR em 12 meses' },
+    { n:2, title:'Fechar Mais Deals', desc:'Priorize follow-ups com prospects. Cada cliente novo = mais receita.', impact:'10 clientes novos = +' + fmt(d.avgTicket * 10) + '/mês' },
+    { n:3, title:'Upsell para Ativos', desc:'Ofereça planos superiores. É mais barato do que conquistar novos clientes.', impact:'30% de upsell = +20-30% no MRR' },
+    { n:4, title:'Converter Trials', desc:'Entre em contato com os ' + d.trialingCount + ' trials. Ofereça onboarding personalizado.', impact:'Cada trial convertido = +' + fmt(d.avgTicket) + '/mês' },
+    { n:5, title:'Content Marketing', desc:'Crie conteúdo sobre o problema que você resolve. Capture leads organicamente.', impact:'CAC = R$ 0 · LTV/CAC = infinito' },
+  ];
+  document.getElementById('actionsGrid').innerHTML = actions.map(a => `
+    <div class="action-card">
+      <div class="action-header">
+        <div class="action-badge">${a.n}</div>
+        <div class="action-title">${a.title}</div>
+      </div>
+      <div class="action-desc">${a.desc}</div>
+      <div class="action-impact">${a.impact}</div>
+    </div>
+  `).join('');
+}
 
-            if (churnNum > 15) {
-                actions.push({
-                    title: '1️⃣ Reduzir Churn AGORA',
-                    description: 'Seu churn está acima de 15%. Fale com clientes que cancelaram, entenda os motivos, melhore o produto.',
-                    metric: 'Impacto: Se reduzir para 5%, seu MRR cresce 100% em 6 meses'
-                });
-            }
+function renderTransactions(d) {
+  const txs = d.transactions || [];
+  if (!txs.length) {
+    document.getElementById('txSection').innerHTML = '<div style="color:var(--gray);font-size:13px">Nenhuma transação recente.</div>';
+    return;
+  }
+  document.getElementById('txSection').innerHTML = `
+    <div class="tx-list">
+      ${txs.map(t => `
+        <div class="tx-item">
+          <div>
+            <div class="tx-desc">${t.description}</div>
+            <div class="tx-date">${fmtDate(t.created)}</div>
+          </div>
+          <div class="tx-amount">+${fmt(t.amount)}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
 
-            actions.push({
-                title: '2️⃣ Fechar Mais Deals',
-                description: 'Se tem pipeline, priorize follow-ups. Cada cliente novo = mais receita.',
-                metric: '10 clientes novos = +' + metrics.avgTicket + '/mês'
-            });
-
-            actions.push({
-                title: '3️⃣ Upsell para Clientes Atuais',
-                description: 'Ofereça planos superiores ou complementos. É mais barato que conquistar novos clientes.',
-                metric: 'Se 30% fizerem upsell = +20-30% no MRR'
-            });
-
-            actions.push({
-                title: '4️⃣ Content Marketing',
-                description: 'Crie conteúdo sobre "vender no WhatsApp" (seu público). Capture leads organicamente.',
-                metric: 'CAC = R$ 0. LTV/CAC = infinito = muito lucrativo!'
-            });
-
-            actions.push({
-                title: '5️⃣ Referral Program',
-                description: 'Ofereça desconto ou crédito para clientes que indicarem amigos. Crescimento viral!',
-                metric: 'CAC zero = lucro máximo por cliente'
-            });
-
-            return actions;
-        }
-
-        function displayError() {
-            const grid = document.getElementById('metricsGrid');
-            grid.innerHTML = `
-                <div class="card" style="grid-column: 1 / -1;">
-                    <div class="card-label">Erro ao carregar dados</div>
-                    <div class="card-description">
-                        Verifique se sua chave Stripe está corretamente configurada no Vercel.
-                        <br><br>
-                        <strong>Dica:</strong> Vercel → Settings → Environment Variables → Verifique STRIPE_SECRET_KEY
-                    </div>
-                </div>
-            `;
-        }
-
-        // Auto-load ao abrir
-        window.addEventListener('load', fetchMetrics);
-    </script>
+fetchMetrics();
+</script>
 </body>
 </html>
