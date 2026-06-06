@@ -8,7 +8,6 @@
     "build": "echo 'build complete'"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.107.0",
     "stripe": "^14.0.0"
   },
   "devDependencies": {
