@@ -35,13 +35,16 @@ export default async function handler(req, res) {
     });
 
     // Calcular métricas
-    const activeCustomers = subscriptions.data.length;
-    
+    // Exclui assinaturas com cancelamento agendado (cancel_at_period_end=true),
+    // alinhando com o cálculo de MRR do Stripe Dashboard.
+    const billingSubs = subscriptions.data.filter(sub => !sub.cancel_at_period_end);
+    const activeCustomers = billingSubs.length;
+
     let mrr = 0;
     let totalLTV = 0;
     let canceledLastMonth = 0;
 
-    subscriptions.data.forEach(sub => {
+    billingSubs.forEach(sub => {
       // Calcular MRR por assinatura
       if (sub.items.data[0]?.price) {
         const price = sub.items.data[0].price;
